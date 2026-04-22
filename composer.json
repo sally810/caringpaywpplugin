@@ -1,0 +1,17 @@
+{
+  "name": "caringpays/care-advisor",
+  "description": "CaringPays Care Advisor WordPress plugin",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=8.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "CaringPays\\CareAdvisor\\": "includes/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
