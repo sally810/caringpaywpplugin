@@ -12,6 +12,8 @@ final class EscalationCodes
     public const ESC_06 = 'ESC-06';
     public const ESC_07 = 'ESC-07';
 
+    public const ESC_05_CONSULTATION_MESSAGE = "I can't answer this with approved guidance. I'm routing you to a consultation workflow with a Care Advisor specialist.";
+
     /**
      * Exact deterministic emergency message required for ESC-03 handling.
      */

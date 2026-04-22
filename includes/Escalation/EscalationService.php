@@ -52,7 +52,7 @@ final class EscalationService
             'channels' => $action['channels'],
             'deterministic_message' => $code === EscalationCodes::ESC_03
                 ? EscalationCodes::ESC_03_EMERGENCY_MESSAGE
-                : null,
+                : ($code === EscalationCodes::ESC_05 ? EscalationCodes::ESC_05_CONSULTATION_MESSAGE : null),
         ];
     }
 
