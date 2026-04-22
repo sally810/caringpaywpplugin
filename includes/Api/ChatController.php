@@ -2,6 +2,9 @@
 
 namespace CaringPays\CareAdvisor\Api;
 
+use CaringPays\CareAdvisor\Escalation\EscalationService;
+use CaringPays\CareAdvisor\Escalation\EscalationCodes;
+use CaringPays\CareAdvisor\Escalation\EscalationPolicy;
 use CaringPays\CareAdvisor\Security\RequestSanitizer;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -83,8 +86,49 @@ final class ChatController
             );
         }
 
+        if (self::isAiDisabledForSession($sessionToken)) {
+            return new WP_REST_Response(
+                [
+                    'ok' => true,
+                    'data' => [
+                        'role' => 'assistant',
+                        'message' => (string) get_option(
+                            EscalationPolicy::protectedEscalationOptionKey(),
+                            EscalationCodes::ESC_03_EMERGENCY_MESSAGE
+                        ),
+                        'ai_processing_disabled' => true,
+                    ],
+                ],
+                200
+            );
+        }
+
         $message = RequestSanitizer::html($request->get_param('message'));
         $turnIndex = RequestSanitizer::integer($request->get_param('turn_index'));
+        $escalationContext = $request->get_param('escalation_context');
+        if (! is_array($escalationContext)) {
+            $escalationContext = [];
+        }
+
+        $escalationContext['session_token'] = $sessionToken;
+        $escalationContext['turn_index'] = $turnIndex;
+        $escalation = (new EscalationService())->evaluate($message, $escalationContext);
+
+        if (is_array($escalation) && ($escalation['bypass_ai_generation'] ?? false)) {
+            return new WP_REST_Response(
+                [
+                    'ok' => true,
+                    'data' => [
+                        'turn_index' => $turnIndex,
+                        'role' => 'assistant',
+                        'message' => (string) ($escalation['deterministic_message'] ?? ''),
+                        'escalation' => $escalation,
+                        'ai_processing_disabled' => true,
+                    ],
+                ],
+                200
+            );
+        }
 
         $response = [
             'ok' => true,
@@ -92,6 +136,7 @@ final class ChatController
                 'turn_index' => $turnIndex,
                 'role' => 'user',
                 'message' => $message,
+                'escalation' => $escalation,
             ],
         ];
 
@@ -290,5 +335,22 @@ final class ChatController
         ));
 
         return $consented > 0;
+    }
+
+    private static function isAiDisabledForSession(string $sessionToken): bool
+    {
+        global $wpdb;
+
+        if (! isset($wpdb) || $sessionToken === '') {
+            return false;
+        }
+
+        $sessionTable = $wpdb->prefix . 'cp_sessions';
+        $status = (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$sessionTable} WHERE session_uuid = %s LIMIT 1",
+            $sessionToken
+        ));
+
+        return $status === 'ai_disabled';
     }
 }
