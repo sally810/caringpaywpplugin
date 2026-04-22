@@ -2,6 +2,7 @@
 
 namespace CaringPays\CareAdvisor\Core;
 
+use CaringPays\CareAdvisor\Admin\AdminPages;
 use CaringPays\CareAdvisor\Api\RouteRegistrar;
 use CaringPays\CareAdvisor\Database\AuditLogRetention;
 use CaringPays\CareAdvisor\Database\SchemaMigrator;
@@ -80,6 +81,7 @@ final class Plugin
 
         $this->registerRoutes();
         $this->registerShortcodes();
+        $this->registerAdminPages();
         $this->loadLocalization();
         $this->performEdgeHandshake();
     }
@@ -100,6 +102,15 @@ final class Plugin
     private function registerShortcodes(): void
     {
         WidgetShortcode::boot();
+    }
+
+    private function registerAdminPages(): void
+    {
+        if (! is_admin()) {
+            return;
+        }
+
+        AdminPages::boot();
     }
     private function loadLocalization(): void
     {

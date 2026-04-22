@@ -5,7 +5,7 @@ namespace CaringPays\CareAdvisor\Database;
 final class SchemaMigrator
 {
     private const OPTION_SCHEMA_VERSION = 'cp_care_advisor_db_schema_version';
-    private const SCHEMA_VERSION = '1.0.0';
+    private const SCHEMA_VERSION = '1.1.0';
 
     public static function migrate(): void
     {
@@ -32,6 +32,7 @@ final class SchemaMigrator
         dbDelta(self::eligibilityMatrixSql($prefix, $charsetCollate));
         dbDelta(self::auditLogsSql($prefix, $charsetCollate));
         dbDelta(self::optimizationQueueSql($prefix, $charsetCollate));
+        dbDelta(self::failedSyncQueueSql($prefix, $charsetCollate));
 
         update_option(self::OPTION_SCHEMA_VERSION, self::SCHEMA_VERSION, false);
     }
@@ -158,6 +159,25 @@ final class SchemaMigrator
             PRIMARY KEY  (id),
             KEY session_id (session_id),
             KEY state (state),
+            KEY status (status),
+            KEY available_at (available_at)
+        ) {$charsetCollate};";
+    }
+
+    private static function failedSyncQueueSql(string $prefix, string $charsetCollate): string
+    {
+        return "CREATE TABLE {$prefix}cp_failed_sync_queue (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            lead_id BIGINT UNSIGNED NULL,
+            payload LONGTEXT NOT NULL,
+            status VARCHAR(32) NOT NULL,
+            attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            last_error TEXT NULL,
+            available_at DATETIME NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            PRIMARY KEY  (id),
+            KEY lead_id (lead_id),
             KEY status (status),
             KEY available_at (available_at)
         ) {$charsetCollate};";
