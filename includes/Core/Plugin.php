@@ -2,6 +2,9 @@
 
 namespace CaringPays\CareAdvisor\Core;
 
+use CaringPays\CareAdvisor\Database\AuditLogRetention;
+use CaringPays\CareAdvisor\Database\SchemaMigrator;
+
 final class Plugin
 {
     private static ?self $instance = null;
@@ -19,6 +22,25 @@ final class Plugin
         }
 
         return self::$instance;
+    }
+
+    public static function activate(): void
+    {
+        if (! defined('ABSPATH')) {
+            return;
+        }
+
+        SchemaMigrator::migrate();
+        AuditLogRetention::scheduleDailyCleanup();
+    }
+
+    public static function deactivate(): void
+    {
+        if (! defined('ABSPATH')) {
+            return;
+        }
+
+        AuditLogRetention::unscheduleDailyCleanup();
     }
 
     public static function pluginsLoaded(): void
@@ -49,6 +71,10 @@ final class Plugin
         if (! $this->environmentReady) {
             return;
         }
+
+        SchemaMigrator::migrate();
+
+        add_action(AuditLogRetention::CRON_HOOK, [AuditLogRetention::class, 'purgeOlderThanSevenYears']);
 
         $this->registerRoutes();
         $this->loadLocalization();

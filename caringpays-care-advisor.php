@@ -25,5 +25,8 @@ if (! file_exists($autoload)) {
 
 require_once $autoload;
 
+register_activation_hook(CARINGPAYS_CARE_ADVISOR_FILE, [\CaringPays\CareAdvisor\Core\Plugin::class, 'activate']);
+register_deactivation_hook(CARINGPAYS_CARE_ADVISOR_FILE, [\CaringPays\CareAdvisor\Core\Plugin::class, 'deactivate']);
+
 add_action('plugins_loaded', [\CaringPays\CareAdvisor\Core\Plugin::class, 'pluginsLoaded']);
 add_action('init', [\CaringPays\CareAdvisor\Core\Plugin::class, 'init']);
