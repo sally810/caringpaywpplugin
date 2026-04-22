@@ -3,6 +3,7 @@
 namespace CaringPays\CareAdvisor\Api;
 
 use CaringPays\CareAdvisor\Database\OptimizationQueueRepository;
+use CaringPays\CareAdvisor\Escalation\EscalationPolicy;
 use CaringPays\CareAdvisor\Security\RequestSanitizer;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -20,6 +21,7 @@ final class AdminController
                 'entity_type' => $entityType,
                 'entity_key' => $entityKey,
                 'records' => [],
+                'excluded_option_keys' => EscalationPolicy::protectedOptionKeysForAiEditWorkflows(),
             ],
         ];
 
@@ -35,6 +37,17 @@ final class AdminController
         $payload = $request->get_param('payload');
         if (! is_array($payload)) {
             $payload = [];
+        }
+
+        if ($optimizationType === 'wp_option' && self::isProtectedOption($payload)) {
+            return new WP_REST_Response(
+                [
+                    'ok' => false,
+                    'error' => 'protected_option',
+                    'message' => 'This wp_option key is excluded from AI-edit workflows.',
+                ],
+                403
+            );
         }
 
         $queued = OptimizationQueueRepository::enqueue(
@@ -54,5 +67,15 @@ final class AdminController
         ];
 
         return new WP_REST_Response($response, $queued ? 202 : 500);
+    }
+
+    private static function isProtectedOption(array $payload): bool
+    {
+        $optionKey = RequestSanitizer::text($payload['option_key'] ?? '');
+        if ($optionKey === '') {
+            return false;
+        }
+
+        return in_array($optionKey, EscalationPolicy::protectedOptionKeysForAiEditWorkflows(), true);
     }
 }
