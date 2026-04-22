@@ -2,6 +2,7 @@
 
 namespace CaringPays\CareAdvisor\Core;
 
+use CaringPays\CareAdvisor\Api\RouteRegistrar;
 use CaringPays\CareAdvisor\Database\AuditLogRetention;
 use CaringPays\CareAdvisor\Database\SchemaMigrator;
 
@@ -83,6 +84,8 @@ final class Plugin
 
     private function registerRoutes(): void
     {
+        RouteRegistrar::boot();
+
         /**
          * Runtime hook for API route registration.
          *
