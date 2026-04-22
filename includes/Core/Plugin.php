@@ -5,6 +5,7 @@ namespace CaringPays\CareAdvisor\Core;
 use CaringPays\CareAdvisor\Api\RouteRegistrar;
 use CaringPays\CareAdvisor\Database\AuditLogRetention;
 use CaringPays\CareAdvisor\Database\SchemaMigrator;
+use CaringPays\CareAdvisor\Frontend\WidgetShortcode;
 
 final class Plugin
 {
@@ -78,6 +79,7 @@ final class Plugin
         add_action(AuditLogRetention::CRON_HOOK, [AuditLogRetention::class, 'purgeOlderThanSevenYears']);
 
         $this->registerRoutes();
+        $this->registerShortcodes();
         $this->loadLocalization();
         $this->performEdgeHandshake();
     }
@@ -94,6 +96,11 @@ final class Plugin
         do_action('caringpays_care_advisor_register_routes');
     }
 
+
+    private function registerShortcodes(): void
+    {
+        WidgetShortcode::boot();
+    }
     private function loadLocalization(): void
     {
         load_plugin_textdomain(
