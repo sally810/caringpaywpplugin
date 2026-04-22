@@ -6,6 +6,7 @@ use CaringPays\CareAdvisor\Escalation\EscalationService;
 use CaringPays\CareAdvisor\Escalation\EscalationCodes;
 use CaringPays\CareAdvisor\Escalation\EscalationPolicy;
 use CaringPays\CareAdvisor\Security\RequestSanitizer;
+use CaringPays\CareAdvisor\Grounding\GroundedResponseService;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -130,12 +131,39 @@ final class ChatController
             );
         }
 
+        $groundedResponse = (new GroundedResponseService())->compose($sessionToken, self::stateForSession($sessionToken), $message);
+
+        if (! ($groundedResponse['ok'] ?? false)) {
+            $fallbackEscalation = (new EscalationService())->evaluate($message, [
+                'session_token' => $sessionToken,
+                'turn_index' => $turnIndex,
+                'escalation_code' => EscalationCodes::ESC_05,
+            ]);
+
+            return new WP_REST_Response(
+                [
+                    'ok' => true,
+                    'data' => [
+                        'turn_index' => $turnIndex,
+                        'role' => 'assistant',
+                        'message' => EscalationCodes::ESC_05_CONSULTATION_MESSAGE,
+                        'escalation' => $fallbackEscalation,
+                        'consultation_required' => true,
+                        'ai_processing_disabled' => true,
+                    ],
+                ],
+                200
+            );
+        }
+
         $response = [
             'ok' => true,
             'data' => [
                 'turn_index' => $turnIndex,
-                'role' => 'user',
-                'message' => $message,
+                'role' => 'assistant',
+                'message' => (string) ($groundedResponse['message'] ?? ''),
+                'fragments' => $groundedResponse['fragments'] ?? [],
+                'eligibility' => $groundedResponse['eligibility'] ?? [],
                 'escalation' => $escalation,
             ],
         ];
@@ -352,5 +380,21 @@ final class ChatController
         ));
 
         return $status === 'ai_disabled';
+    }
+
+    private static function stateForSession(string $sessionToken): string
+    {
+        global $wpdb;
+
+        if (! isset($wpdb) || $sessionToken === '') {
+            return '';
+        }
+
+        $sessionTable = $wpdb->prefix . 'cp_sessions';
+
+        return (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT state FROM {$sessionTable} WHERE session_uuid = %s LIMIT 1",
+            $sessionToken
+        ));
     }
 }

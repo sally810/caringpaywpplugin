@@ -31,7 +31,7 @@ final class EscalationPolicy
                 'channels' => ['developer_log', 'slack', 'crm_flag'],
             ],
             EscalationCodes::ESC_05 => [
-                'action' => 'fraud_hold',
+                'action' => 'consultation_workflow_route',
                 'bypass_ai_generation' => true,
                 'channels' => ['developer_log', 'slack', 'crm_flag'],
             ],
